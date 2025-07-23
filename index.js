@@ -1,11 +1,13 @@
 // r-server.js
 
+const { io } = require("socket.io-client");
 const fs = require("fs");
 const express = require("express");
 const cors = require("cors");
 const HID_PATH = "/dev/hidg0";
 const app = express();
 const port = 5000;
+const socket = io("http://192.168.25.44:3000"); // ← 실제 I 서버 주소로 수정
 
 // 키 코드 매핑
 const KEY_CODES = {
@@ -58,9 +60,9 @@ const KEY_CODES = {
 };
 
 // HID 입력 함수
-async function sendHIDKey(key) {
+async function sendHIDKey(key, down) {
   const code = KEY_CODES[key];
-  console.log("들어온 키", key, "입력할 키", code);
+
   if (!code) {
     console.log(`알 수 없는 키: ${key}`);
     return;
@@ -81,28 +83,49 @@ async function sendHIDKey(key) {
   buf[2] = keycode;
 
   try {
-    fs.writeFileSync(HID_PATH, buf); // Key Down
-    await new Promise((r) => setTimeout(r, 20));
-    fs.writeFileSync(HID_PATH, Buffer.alloc(8)); // Key Up
-    await new Promise((r) => setTimeout(r, 20));
-    console.log(`[R] HID 키 입력: ${key}`);
+    if (down) {
+      fs.writeFileSync(HID_PATH, buf); // Key Down
+    } else {
+      fs.writeFileSync(HID_PATH, Buffer.alloc(8)); // Key Up
+    }
   } catch (err) {
     console.error(`❌ HID 전송 실패: ${err.message}`);
   }
 }
 
-app.use(cors());
-
-app.get("/key", (req, res) => {
-  try {
-    const key = req.query.key;
-    sendHIDKey(key);
-    res.json({ message: "success" });
-  } catch (err) {
-    throw new Error("실패");
-  }
+socket.on("connect", () => {
+  console.log("[D] I 서버에 연결됨");
+  socket.emit("register", "d");
 });
 
-app.listen(port, "0.0.0.0", () => {
-  console.log(`[R] Express API 포트 열림: http://localhost:${port}`);
+socket.on("msg", (msg) => {
+  console.log("[I → D] 수신 메시지:", msg);
 });
+
+socket.on("key", async (key) => {
+  console.log("[D] 키 입력:", key, new Date().toISOString());
+  // 로어키 lShift 라고 가정
+  // if (key === "lshift") {
+  //   sendHIDKey("lshift", true);
+  //   sendHIDKey("lshift", false);
+  // } else {
+  sendHIDKey(key, true);
+  sendHIDKey(key, false);
+  // }
+});
+
+// app.use(cors());
+
+// app.get("/key", (req, res) => {
+//   try {
+//     const key = req.query.key;
+//     sendHIDKey(key);
+//     res.json({ message: "success" });
+//   } catch (err) {
+//     throw new Error("실패");
+//   }
+// });
+
+// app.listen(port, "0.0.0.0", () => {
+//   console.log(`[R] Express API 포트 열림: http://localhost:${port}`);
+// });
