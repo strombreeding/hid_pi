@@ -58,7 +58,7 @@ const KEY_CODES = {
 };
 
 // HID 입력 함수
-function sendHIDKey(key) {
+async function sendHIDKey(key) {
   const code = KEY_CODES[key];
   console.log("들어온 키", key, "입력할 키", code);
   if (!code) {
@@ -82,7 +82,9 @@ function sendHIDKey(key) {
 
   try {
     fs.writeFileSync(HID_PATH, buf); // Key Down
+    await new Promise((r) => setTimeout(r, 20));
     fs.writeFileSync(HID_PATH, Buffer.alloc(8)); // Key Up
+    await new Promise((r) => setTimeout(r, 20));
     console.log(`[R] HID 키 입력: ${key}`);
   } catch (err) {
     console.error(`❌ HID 전송 실패: ${err.message}`);
