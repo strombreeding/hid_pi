@@ -60,7 +60,7 @@ const KEY_CODES = {
 // HID 입력 함수
 function sendHIDKey(key) {
   const code = KEY_CODES[key];
-
+  console.log("들어온 키", key, "입력할 키", code);
   if (!code) {
     console.log(`알 수 없는 키: ${key}`);
     return;
