@@ -2,7 +2,7 @@
 
 const fs = require("fs");
 const express = require("express");
-
+const cors = require("cors");
 const HID_PATH = "/dev/hidg0";
 const app = express();
 const port = 5000;
@@ -89,6 +89,8 @@ function sendHIDKey(key) {
   }
 }
 
+app.use(cors());
+
 app.get("/key", (req, res) => {
   try {
     const key = req.query.key;
@@ -99,6 +101,6 @@ app.get("/key", (req, res) => {
   }
 });
 
-app.listen(port, () => {
+app.listen(port, "0.0.0.0", () => {
   console.log(`[R] Express API 포트 열림: http://localhost:${port}`);
 });
